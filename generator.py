@@ -50,7 +50,8 @@ class Generator(object):
         kwidth = 3
         z = make_z([segan.batch_size, h_i.get_shape().as_list()[1],
                     segan.g_enc_depths[-1]])
-        h_i = tf.concat(2, [h_i, z])
+        #h_i = tf.concat(2, [h_i, z])
+        h_i = tf.concat([h_i,z], 2)
         skip_out = True
         skips = []
         for block_idx, dilation in enumerate(segan.g_dilated_blocks):
