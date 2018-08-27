@@ -197,7 +197,7 @@ class SEGAN(Model):
             # make a dummy copy of discriminator to have variables and then
             # be able to set up the variable reuse for all other devices
             # merge along channels and this would be a real batch
-            dummy_joint = tf.concat(2, [wavbatch, noisybatch])
+            dummy_joint = tf.concat( [wavbatch, noisybatch],2 )
             dummy = discriminator(self, dummy_joint,
                                   reuse=False)
 
@@ -207,8 +207,8 @@ class SEGAN(Model):
         self.zs.append(z)
 
         # add new dimension to merge with other pairs
-        D_rl_joint = tf.concat(2, [wavbatch, noisybatch])
-        D_fk_joint = tf.concat(2, [G, noisybatch])
+        D_rl_joint = tf.concat([wavbatch, noisybatch],2)
+        D_fk_joint = tf.concat([G, noisybatch],2)
         # build rl discriminator
         d_rl_logits = discriminator(self, D_rl_joint, reuse=True)
         # build fk G discriminator
