@@ -189,8 +189,8 @@ class AEGenerator(object):
                 # random code is fused with intermediate representation
                 z = make_z([segan.batch_size, h_i.get_shape().as_list()[1],
                             segan.g_enc_depths[-1]])
-                h_i = tf.concat(2, [z, h_i])
-
+                #h_i = tf.concat(2, [z, h_i])
+                h_i = tf.concat([z, h_i] , 2)
             #SECOND DECODER (reverse order)
             g_dec_depths = segan.g_enc_depths[:-1][::-1] + [1]
             if is_ref:
