@@ -120,25 +120,25 @@ class SEGAN(Model):
     def build_model(self, config):
         all_d_grads = []
         all_g_grads = []
-        d_opt = tf.train.RMSPropOptimizer(config.d_learning_rate)
-        g_opt = tf.train.RMSPropOptimizer(config.g_learning_rate)
-        #d_opt = tf.train.AdamOptimizer(config.d_learning_rate,
-        #                               beta1=config.beta_1)
-        #g_opt = tf.train.AdamOptimizer(config.g_learning_rate,
-        #                               beta1=config.beta_1)
-
-        for idx, device in enumerate(self.devices):
-            with tf.device("/%s" % device):
-                with tf.name_scope("device_%s" % idx):
-                    with variables_on_gpu0():
-                        self.build_model_single_gpu(idx)
-                        d_grads = d_opt.compute_gradients(self.d_losses[-1],
-                                                          var_list=self.d_vars)
-                        g_grads = g_opt.compute_gradients(self.g_losses[-1],
+#        d_opt = tf.train.RMSPropOptimizer(config.d_learning_rate)
+#        g_opt = tf.train.RMSPropOptimizer(config.g_learning_rate)
+        d_opt = tf.train.AdamOptimizer(config.d_learning_rate,
+                                       beta1=config.beta_1)
+        g_opt = tf.train.AdamOptimizer(config.g_learning_rate,
+                                       beta1=config.beta_1)
+        with tf.variable_scope(tf.get_variable_scope()) as scope:
+           for idx, device in enumerate(self.devices):
+               with tf.device("/%s" % device):
+                   with tf.name_scope("device_%s" % idx):
+                       with variables_on_gpu0():
+                           self.build_model_single_gpu(idx)
+                           d_grads = d_opt.compute_gradients(self.d_losses[-1],
+                                                             var_list=self.d_vars)
+                           g_grads = g_opt.compute_gradients(self.g_losses[-1],
                                                           var_list=self.g_vars)
-                        all_d_grads.append(d_grads)
-                        all_g_grads.append(g_grads)
-                        tf.get_variable_scope().reuse_variables()
+                           all_d_grads.append(d_grads)
+                           all_g_grads.append(g_grads)
+                           tf.get_variable_scope().reuse_variables()
         avg_d_grads = average_gradients(all_d_grads)
         avg_g_grads = average_gradients(all_g_grads)
         self.d_opt = d_opt.apply_gradients(avg_d_grads)
@@ -197,7 +197,7 @@ class SEGAN(Model):
             # make a dummy copy of discriminator to have variables and then
             # be able to set up the variable reuse for all other devices
             # merge along channels and this would be a real batch
-            dummy_joint = tf.concat( [wavbatch, noisybatch],2 )
+            dummy_joint = tf.concat([wavbatch, noisybatch],2)
             dummy = discriminator(self, dummy_joint,
                                   reuse=False)
 
@@ -243,7 +243,7 @@ class SEGAN(Model):
         d_loss = d_rl_loss + d_fk_loss
 
         # Add the L1 loss to G
-        g_l1_loss = self.l1_lambda * tf.reduce_mean(tf.abs(tf.sub(G,
+        g_l1_loss = self.l1_lambda * tf.reduce_mean(tf.abs(tf.subtract(G,
                                                                   wavbatch)))
 
         g_loss = g_adv_loss + g_l1_loss
@@ -271,16 +271,19 @@ class SEGAN(Model):
 
 
     def get_vars(self):
+#      t_vars = tf.trainable_variables()
+#      self.d_vars_dict = {}
+#      self.g_vars_dict = {}
+#      for var in t_vars:
+#       if var.name.startswith('d_'):
+#          self.d_vars_dict[var.name] = var
+#       if var.name.startswith('g_'):
+#          self.g_vars_dict[var.name] = var
+#       self.d_vars = self.d_vars_dict.values()
+#       self.g_vars = self.g_vars_dict.values()
         t_vars = tf.trainable_variables()
-        self.d_vars_dict = {}
-        self.g_vars_dict = {}
-        for var in t_vars:
-            if var.name.startswith('d_'):
-                self.d_vars_dict[var.name] = var
-            if var.name.startswith('g_'):
-                self.g_vars_dict[var.name] = var
-        self.d_vars = self.d_vars_dict.values()
-        self.g_vars = self.g_vars_dict.values()
+        self.d_vars = [var for var in t_vars if 'd_' in var.name]
+        self.g_vars = [var for var in t_vars if 'g_' in var.name]
         for x in self.d_vars:
             assert x not in self.g_vars
         for x in self.g_vars:
@@ -671,7 +674,7 @@ class SEAE(Model):
             self.g_losses = []
 
         # Add the L1 loss to G
-        g_loss = tf.reduce_mean(tf.abs(tf.sub(G, wavbatch)))
+        g_loss = tf.reduce_mean(tf.abs(tf.subtract(G, wavbatch)))
 
         self.g_losses.append(g_loss)
 
